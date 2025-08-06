@@ -1,0 +1,107 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+#####################################################################
+# バッチジョブ
+# 日次：業務支援系商品マスタ_マージ（通知送信）
+#
+# 変更履歴
+# -------------------------------------------------------------------
+# 2021/08/24 新規作成                                | SVC TSUKINOKI
+#####################################################################
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+# 変数宣言
+JOBID=BCLD4162
+
+# ログ退避 (２世代保有)
+JOBLOG=${LOG_DIR}/${JOBID}.log
+if [ -f ${JOBLOG} ]; then
+  cp -pr ${JOBLOG} ${JOBLOG}old
+fi
+
+#入力ファイルPATH
+IN_FILE_PATH="/work/tmp"
+FILE_NAME="BCLD4161.txt"
+
+#メール設定ファイル
+MAILTEMPLATE="/home/cron/data/mailsetting"
+
+#送信先リスト
+SEND_LIST_FILE="/home/tool/prm/BCLD4162.list"
+
+#タイトル
+SUBJECT_PRE="業務支援系商品マスタ更新通知("${JOBID}")"
+
+#本文内容
+NOW_DATE=`date "+%Y/%m/%d"`
+
+#--------------------------------------------------------------------------
+# メール送信処理
+#--------------------------------------------------------------------------
+SEND_MAIL()
+{
+  echo -e "${MAILBODY}"  | mail -s "${MAILSUBJECT}" -S smtp=${SMTPSVR} -r ${MAILFROM} ${TRMUSERID}${MAILTODOMAIN}
+}
+
+#--------------------------------------------------------------------------
+# 送信先リスト処理
+# -------------------------------------------------------------------------
+SEND_LIST_FNC()
+{
+list_cnt=0
+while read TRMUSERID
+do
+  SEND_MAIL
+  list_cnt=$(( list_cnt + 1 ))
+done < $1
+}
+
+#--------------------------------------------------------------------------
+# メイン処理
+# -------------------------------------------------------------------------
+date > ${LOG_DIR}/${JOBID}.log
+
+#ﾒｰﾙﾃﾝﾌﾟﾚ読込
+. ${MAILTEMPLATE}
+
+#開発用
+#SMTPSVR="smtp://129.241.2.161:25"
+
+# 結果ファイルがあれば処理
+RES=`ls -l ${IN_FILE_PATH}/${FILE_NAME}  2> /dev/null`
+
+
+if [ -n "${RES}" ]; then
+
+  ROW=`cat ${IN_FILE_PATH}/${FILE_NAME} | wc -l  2> /dev/null`
+  KENSU=$(( ROW - 1 ))
+
+  if [ "${ROW}" -gt 0 ]; then
+    echo "#--< 業務支援系商品マスタ更新あり >-----------------#" >> ${LOG_DIR}/${JOBID}.log
+    echo "#--< ${KENSU}件の更新 >--------------------------#" >> ${LOG_DIR}/${JOBID}.log
+    KEKKA_FILE=`cat ${IN_FILE_PATH}/${FILE_NAME} | sed -e 's/  */ /g'`
+    echo -e "${KEKKA_FILE}" >> ${LOG_DIR}/${JOBID}.log
+    echo "#---------------------------------------------------#" >> ${LOG_DIR}/${JOBID}.log
+    MAILSUBJECT=${SUBJECT_PRE}"("${NOW_DATE}")"
+    MAILBODY=${KEKKA_FILE}"\n--------------- [END] ---------------"
+
+    SEND_LIST_FNC ${SEND_LIST_FILE}
+    echo "#--< 通知メール "${list_cnt}" 件送信完了 >--------------------#"  >> ${LOG_DIR}/${JOBID}.log
+
+  else
+    echo "#--< 業務支援系商品マスタ更新なし >-----------------#"  >> ${LOG_DIR}/${JOBID}.log
+  fi
+
+else
+
+  echo "#--< 業務支援系商品マスタ更新通知ファイルなし >-----------------#" >> ${LOG_DIR}/${JOBID}.log
+
+fi
+
+date >> ${LOG_DIR}/${JOBID}.log

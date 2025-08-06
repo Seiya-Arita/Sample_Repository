@@ -1,0 +1,39 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+# =========================================================================
+# 世代更新(チェンジ) : 【管理店】管理店優先順位マスタ (T_KT05501Z)
+#                     (入力テーブル残す、BKUPあり)
+#
+#           作成日付 : 2024-10-25
+# =========================================================================
+
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+
+# 変数宣言
+JOBID=CKTD0550
+DDLID=T_KT05501Z
+PTNID=OBJ
+CYL=1
+VTBL=
+
+# ログ退避 (２世代保有)
+JOBLOG=${LOG_DIR}/${JOBID}.log
+if [ -f ${JOBLOG} ]; then
+  cp -pr ${JOBLOG} ${JOBLOG}old
+fi
+
+# チェンジ処理
+date > ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/TBLCHG08.sh ${DDLID} ${PTNID} ${CYL} ${VTBL} >> ${LOG_DIR}/${JOBID}.log
+
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log

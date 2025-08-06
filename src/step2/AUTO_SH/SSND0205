@@ -1,0 +1,68 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+# =========================================================================
+#
+# ＣＲＭ用顧客別管理店情報エクスポート処理 配信
+# 作成ファイル名称  :
+# フェーズ          :ＨＵＬＦＴ配信（データ連携サーバへ）
+# サイクル          :日次
+# 転送ファイル      :T_SN02000D
+#
+# 変更履歴
+# -------------------------------------------------------------------------
+# 2016-06-06  :新規作成  HCS H.MIYAZIMA
+#
+# =========================================================================
+
+# 環境変数の設定 =====================================================
+# ファイル格納先 /work/HULFT/OUT  ※環境変数にて指定
+. ${ENV_DIR}/SetEnv_1.sh
+
+JOBID="`basename ${0}`"
+FLID=T_SN02000DRS
+HULFT_ID=DCRMS906
+export JOBID
+export FLID
+export HULFT_ID
+
+
+# ＨＵＬＦＴ環境変数宣言 =============================================
+. ${ENV_DIR}/SetEnv_1.sh
+PATH=$PATH:/usr/local/HULFT/bin
+HULPATH=/usr/local/HULFT/etc
+HULEXEP=/usr/local/HULFT/bin
+export PATH
+export HULPATH
+export HULEXEP
+
+# ログ退避 (３世代保有) ==============================================
+LOG="${JOBID}.log"
+LOGSD=3
+${SHELL} ${SH_DIR}/LOG_SHIFT.sh ${LOG} ${LOGSD}
+JOBLOG="${LOG_DIR}/${LOG}"
+#ログ初期化
+printf "\t\n" > ${JOBLOG}
+
+#
+# ==== メイン ====
+#
+
+#========== ＨＵＬＦＴ実行 ===========================================
+
+printf "\t#<  LEFT(【`date, datalength(【`date)/4) + "%Y/%m/%d %H:%M:%S"`】 HULFT [ ${HULFT_ID} ] 配信 開始 >#\n" | tee -a ${JOBLOG}
+. ${HULFT_SH_DIR}/HULFT_SND.sh  >> ${JOBLOG} 2>&1
+RC=$?
+
+if [ ${RC} != 0 ]; then
+  printf "\t#<  LEFT(【`date, datalength(【`date)/4) + "%Y/%m/%d %H:%M:%S"`】 HULFT [ ${HULFT_ID} ] 配信 エラー ${RC}#\n" | tee -a ${JOBLOG}
+  exit 8
+else
+  printf "\t#<  LEFT(【`date, datalength(【`date)/4) + "%Y/%m/%d %H:%M:%S"`】 HULFT [ ${HULFT_ID} ] 配信 正常終了 >#\n" | tee -a ${JOBLOG}
+  exit 0
+fi

@@ -1,0 +1,62 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+#####################################################################
+# バッチジョブ
+# 証券預り資産残高ＨＵＬＦＴ配信
+#
+#		    作成日：2017/10/11
+#		    作成者：AID T.HIROSE
+#
+#		    更新日：2019/07/16
+#		    更新者：AID T.FUKUNAGA
+#		            DINFO670 → DINFO688
+#####################################################################
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+
+
+JOBID=SSND0240
+FLID=wwwaex899403.dat
+HULFT_ID=DINFO688
+EXPORT=/work/HULFT/OUT
+export JOBID
+export EXPORT
+export HULFT_ID
+
+ 
+# ＨＵＬＦＴ環境変数宣言
+PATH=$PATH:/usr/local/HULFT/bin
+HULPATH=/usr/local/HULFT/etc
+HULEXEP=/usr/local/HULFT/bin
+export PATH
+export HULPATH
+export HULEXEP
+
+date > ${LOG_DIR}/${JOBID}.log
+
+#========== 開始表示 ===================#
+printf "\t#--< HULFT転送開始 >-----------#\n"  >> ${LOG_DIR}/${JOBID}.log
+
+
+#========== HULFTへの転送 ===================#
+. ${HULFT_SH_DIR}/HULFT_SND.sh  >> ${LOG_DIR}/${JOBID}.log
+
+
+SYSCD=$?
+if [ $SYSCD != 0 ]; then
+    printf "\t# ＥＲＲ $SYSCD  #\n" >> ${LOG_DIR}/${JOBID}.log
+  exit 8
+#
+fi
+#
+#============ 終了表示 =====================#
+printf "\t#--< HULFT転送正常終了 >---------#\n"  >> ${LOG_DIR}/${JOBID}.log
+date >> ${LOG_DIR}/${JOBID}.log
+#
+exit $?

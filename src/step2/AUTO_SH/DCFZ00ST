@@ -1,0 +1,14 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+#
+# CIF残高 365日 開始
+#
+# ダミーＪＯＢ (DCFZ00ST)
+#
+exit 0

@@ -1,0 +1,58 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+# =========================================================================
+#
+# ＣＲＭ用顧客別管理店情報エクスポートファイル退避
+# 作成ファイル名称  :T_SN02000D
+# フェーズ          :/work/HULFT/OUT ==> /work/HULFT_OLD/OUT へ退避
+# サイクル          :日次
+#
+# 変更履歴
+# -------------------------------------------------------------------------
+# 2016-08-19  :新規作成  HCS H.MIYAZIMA
+#
+# =========================================================================
+
+# 環境変数の設定 =====================================================
+. ${ENV_DIR}/SetEnv_1.sh
+
+# 共通シェル引数
+JOBID="`basename ${0}`"
+FLID=T_SN02000DRS
+CMP=N
+
+
+# ログ退避 (３世代保有) ==============================================
+LOG="${JOBID}.log"
+LOGSD=3
+${SHELL} ${SH_DIR}/LOG_SHIFT.sh ${LOG} ${LOGSD}
+JOBLOG="${LOG_DIR}/${LOG}"
+#ログ初期化
+printf "\t\n" > ${JOBLOG}
+
+#
+# ==== メイン ====
+#
+printf "\t  <  LEFT(【`date, datalength(【`date)/4) + "%Y/%m/%d %H:%M:%S"`】 ${FLID} の退避処理開始 >\n" | tee -a ${JOBLOG}
+printf "\t\n" | tee -a ${JOBLOG}
+
+
+${SHELL} ${SH_DIR}/FILE_TAIHI.sh ${JOBID} ${FLID} ${CMP} >> ${JOBLOG} 2>&1
+RC=$?
+
+printf "\t  <  LEFT(【`date, datalength(【`date)/4) + "%Y/%m/%d %H:%M:%S"`】${JOBID} リターン=RC[${RC}] >\n" | tee -a ${JOBLOG}
+
+printf "\t\n" | tee -a ${JOBLOG}
+if [ ${RC} != 0 ]; then
+  printf "\t  <  LEFT(【`date, datalength(【`date)/4) + "%Y/%m/%d %H:%M:%S"`】 ${FLID} の退避失敗 ${RC} >\n" | tee -a ${JOBLOG}
+  exit 8
+else
+  printf "\t  <  LEFT(【`date, datalength(【`date)/4) + "%Y/%m/%d %H:%M:%S"`】 ${FLID} の退避正常終了 >\n" | tee -a ${JOBLOG}
+fi
+exit 0

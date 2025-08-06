@@ -1,0 +1,120 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+#####################################################################
+# バッチジョブ
+# 業務：ＣＩＦ残高
+# 日次：融資計数ワーク作成
+#
+# 変更履歴
+# -------------------------------------------------------------------
+# 2024/07/08 新規作成                                    | TSUKINOKI
+#####################################################################
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+# 変数宣言
+JOBID=BKTD1206
+
+# ログ退避 (２世代保有)
+JOBLOG=${LOG_DIR}/${JOBID}.log
+if [ -f ${JOBLOG} ]; then
+  cp -pr ${JOBLOG} ${JOBLOG}old
+fi
+
+#テーブルを削除して作成
+TBL_RE_CREATE()
+{
+TBL_NAME=$1
+TBL_EXT=$2
+printf "\t#--< ${TBL_NAME}_${TBL_EXT} のクリエイト開始 >-----------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/TBLCREATE.sh ${TBL_NAME} ${TBL_EXT} >> ${LOG_DIR}/${JOBID}.log
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< ${TBL_NAME}_${TBL_EXT} のクリエイト終了 >-----------------#\n"
+}
+
+#ＳＱＬの実行
+SQL_GO()
+{
+SQL_NAME=$1
+printf "\t#--< ${SQL_NAME} の実行開始 >--------------------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/BATCHJOB.sh ${JOBID} ${SQL_NAME} >> ${LOG_DIR}/${JOBID}.log
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< ${SQL_NAME} の実行終了 >--------------------------#\n"
+}
+
+date > ${LOG_DIR}/${JOBID}.log
+
+#テーブルの削除/作成
+TBL_RE_CREATE T_KT12070D WK01
+TBL_RE_CREATE T_KT12070D WK02
+TBL_RE_CREATE T_KT12070D WK03
+TBL_RE_CREATE T_KT12070D WK04
+TBL_RE_CREATE T_KT12070D WK05
+TBL_RE_CREATE T_KT12070D WK06
+TBL_RE_CREATE T_KT12070D WK07
+TBL_RE_CREATE T_KT12070D WK10
+TBL_RE_CREATE T_KT12070D WK21
+TBL_RE_CREATE T_KT12070D WK22
+TBL_RE_CREATE T_KT12070D WK23
+TBL_RE_CREATE T_KT12070D WK24
+TBL_RE_CREATE T_KT12070D WK25
+TBL_RE_CREATE T_KT12070D WK26
+TBL_RE_CREATE T_KT12070D WK27
+TBL_RE_CREATE T_KT12070D WK28
+TBL_RE_CREATE T_KT12070D WK29
+TBL_RE_CREATE T_KT12070D WK30
+TBL_RE_CREATE T_KT12070D WK31
+TBL_RE_CREATE T_KT12070D WK32
+TBL_RE_CREATE T_KT12070D WK33
+TBL_RE_CREATE T_KT12070D WK41
+TBL_RE_CREATE T_KT12070D WK42
+TBL_RE_CREATE T_KT12070D WK43
+TBL_RE_CREATE T_KT12070D WK44
+TBL_RE_CREATE T_KT12070D WK45
+TBL_RE_CREATE T_KT12070D WK46
+TBL_RE_CREATE T_KT12070D WK50
+TBL_RE_CREATE T_KT12070D WK60
+
+#SQL実行
+SQL_GO BKTD1206_01
+SQL_GO BKTD1206_02
+SQL_GO BKTD1206_03
+SQL_GO BKTD1206_04
+SQL_GO BKTD1206_05
+SQL_GO BKTD1206_06
+SQL_GO BKTD1206_07
+SQL_GO BKTD1206_10
+SQL_GO BKTD1206_21
+SQL_GO BKTD1206_22
+SQL_GO BKTD1206_23
+SQL_GO BKTD1206_24
+SQL_GO BKTD1206_25
+SQL_GO BKTD1206_26
+SQL_GO BKTD1206_27
+SQL_GO BKTD1206_28
+SQL_GO BKTD1206_29
+SQL_GO BKTD1206_30
+SQL_GO BKTD1206_31
+SQL_GO BKTD1206_32
+SQL_GO BKTD1206_33
+SQL_GO BKTD1206_41
+SQL_GO BKTD1206_42
+SQL_GO BKTD1206_43
+SQL_GO BKTD1206_44
+SQL_GO BKTD1206_45
+SQL_GO BKTD1206_46
+SQL_GO BKTD1206_50
+SQL_GO BKTD1206_60

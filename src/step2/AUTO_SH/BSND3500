@@ -1,0 +1,48 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+#####################################################################
+# バッチジョブ
+# 日次：【その他】携帯電話番号取得 (T_SN03500D)
+#
+# 変更履歴
+# -------------------------------------------------------------------
+# 2022-03-18 : SVC H.NODA          新規作成
+#####################################################################
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+# 変数宣言
+JOBID=BSND3500
+
+# ログ退避 (２世代保有)
+JOBLOG=${LOG_DIR}/${JOBID}.log
+if [ -f ${JOBLOG} ]; then
+  cp -pr ${JOBLOG} ${JOBLOG}old
+fi
+
+date > ${JOBLOG}
+
+#ＳＱＬの実行
+SQL_GO()
+{
+SQL_NAME=$1
+printf "\t#--< ${SQL_NAME} の実行開始 >--------------------------#\n"
+date >> ${JOBLOG}
+${SHELL} ${SH_DIR}/BATCHJOB.sh ${JOBID} ${SQL_NAME} >> ${JOBLOG}
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${JOBLOG}
+printf "\t#--< ${SQL_NAME} の実行終了 >--------------------------#\n"
+}
+
+date >> ${JOBLOG}
+
+#SQL実行
+SQL_GO BSND3500_01 
+SQL_GO BSND3500_02 

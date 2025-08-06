@@ -1,0 +1,50 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+# =========================================================================
+#   テーブル 名称 : ＣＩＦマスタ抽出
+# ＨＵＬＦＴ 配信 : DIMG0003 (T_IM00030D)
+#
+#           作成日付 : 2021-11-09
+# =========================================================================
+
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+
+# 変数宣言
+JOBID=SIMD0030
+FLID=T_IM00030D
+HULFT_ID=DIMG0003
+export JOBID
+export HULFT_ID
+
+# ＨＵＬＦＴ環境変数宣言
+PATH=$PATH:/usr/local/HULFT/bin
+HULPATH=/usr/local/HULFT/etc
+HULEXEP=/usr/local/HULFT/bin
+export PATH
+export HULPATH
+export HULEXEP
+
+# ＨＵＬＦＴ 配信
+date > ${LOG_DIR}/${JOBID}.log
+printf "\t#--< ${JOBID} HULFT 配信開始 >----------------------#\n" >> ${LOG_DIR}/${JOBID}.log
+
+printf " \n\t     HULFT-ID = DIMG0003 \n" >> ${LOG_DIR}/${JOBID}.log
+printf   " \t         File = T_IM00030D \n\n " >> ${LOG_DIR}/${JOBID}.log
+
+#========== HULFT転送 ===================#
+. ${HULFT_SH_DIR}/HULFT_SND.sh   >> ${LOG_DIR}/${JOBID}.log
+RC=$?
+if [ $RC != 0 ]; then
+    date >> ${LOG_DIR}/${JOBID}.log
+    printf "\t# ＨＵＬＦＴ配信エラー CD=$RC  #\n" >> ${LOG_DIR}/${JOBID}.log
+    exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< ${JOBID} HULFT 配信終了 >----------------------#\n" >> ${LOG_DIR}/${JOBID}.log

@@ -1,0 +1,94 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+#####################################################################
+# バッチジョブ
+# ＦＧ証券口座開設の自動化
+#
+#		    作成日：2023/02/03
+#		    作成者：KDS K.Setoguchi
+#		    更新日：
+#		    更新者：
+#####################################################################
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+# 変数宣言
+JOBID=BSND0800
+
+# ログ退避 (２世代保有)
+JOBLOG=${LOG_DIR}/${JOBID}.log
+if [ -f ${JOBLOG} ]; then
+  cp -pr ${JOBLOG} ${JOBLOG}old
+fi
+
+#テーブルを削除して作成
+TBL_RE_CREATE()
+{
+TBL_NAME=$1
+TBL_EXT=$2
+printf "\t#--< ${TBL_NAME}_${TBL_EXT} のクリエイト開始 >-----------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/TBLCREATE.sh ${TBL_NAME} ${TBL_EXT} >> ${LOG_DIR}/${JOBID}.log
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< ${TBL_NAME}_${TBL_EXT} のクリエイト終了 >-----------------#\n"
+}
+
+#ＳＱＬの実行
+SQL_GO()
+{
+SQL_NAME=$1
+printf "\t#--< ${SQL_NAME} の実行開始 >--------------------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/BATCHJOB.sh ${JOBID} ${SQL_NAME} >> ${LOG_DIR}/${JOBID}.log
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< ${SQL_NAME} の実行終了 >--------------------------#\n"
+}
+
+date > ${LOG_DIR}/${JOBID}.log
+
+#ワークテーブルの削除/作成
+TBL_RE_CREATE T_SN00800D OBJ
+TBL_RE_CREATE T_SN00800D WK1
+TBL_RE_CREATE T_SN00800D WK2
+TBL_RE_CREATE T_SN00800D WK3
+TBL_RE_CREATE T_SN00800D WK4
+TBL_RE_CREATE T_SN00800D WK5
+TBL_RE_CREATE T_SN00800D WK6
+TBL_RE_CREATE T_SN00800D WK7
+TBL_RE_CREATE T_SN00800D WK8
+TBL_RE_CREATE T_SN00801D WK1
+TBL_RE_CREATE T_SN00801D WK2
+TBL_RE_CREATE T_SN00801D WK3
+TBL_RE_CREATE T_SN00801D WK4
+TBL_RE_CREATE T_SN00802D WK1
+TBL_RE_CREATE T_SN00802D WK2
+TBL_RE_CREATE T_SN00803D WK1
+
+#SQL実行
+SQL_GO BSND0800_01
+SQL_GO BSND0800_02
+SQL_GO BSND0800_03
+SQL_GO BSND0800_04
+SQL_GO BSND0800_05
+SQL_GO BSND0800_06
+SQL_GO BSND0800_07
+SQL_GO BSND0800_08
+SQL_GO BSND0800_09
+SQL_GO BSND0800_10
+SQL_GO BSND0800_11
+SQL_GO BSND0800_12
+SQL_GO BSND0800_13
+SQL_GO BSND0800_14
+SQL_GO BSND0800_15
+SQL_GO BSND0800_16

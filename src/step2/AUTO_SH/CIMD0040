@@ -1,0 +1,39 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+# =========================================================================
+# 世代更新(チェンジ) : 店番ＣＩＦマスタ抽出 (T_IM00040D)
+#                     (入力テーブル削除、BKUPあり)
+#
+#           作成日付 : 2021-10-18
+# =========================================================================
+
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+
+# 変数宣言
+JOBID=CIMD0040
+DDLID=T_IM00040D
+PTNID=OBJ
+CYL=3
+VTBL=
+
+# ログ退避 (２世代保有)
+JOBLOG=${LOG_DIR}/${JOBID}.log
+if [ -f ${JOBLOG} ]; then
+  cp -pr ${JOBLOG} ${JOBLOG}old
+fi
+
+# チェンジ処理
+date > ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/TBLCHG01.sh ${DDLID} ${PTNID} ${CYL} ${VTBL} >> ${LOG_DIR}/${JOBID}.log
+
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log

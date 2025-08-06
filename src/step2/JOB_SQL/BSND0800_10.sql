@@ -1,0 +1,126 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+# =========================================================================
+# 追加テーブル名称  :                   | T_SN00800D_WK3
+# フェーズ          :テーブル作成
+# サイクル          :日次
+# 実行日            :
+# 参照テーブル      :                   | T_SN00800D_WK2
+# 参照テーブル      :                   | T_KT50210D_SRC001
+# 参照テーブル      :                   | T_KT00060D_LOAD
+#
+# 備考              :ＦＧ証券用顧客口座情報作成
+#
+# 変更履歴
+# -------------------------------------------------------------------------
+# 2023-02-03        :新規作成           | KDS K.Setoguchi
+# 2023-05-18        :項目追加６項目     | KDS K.Sakata
+#                        カナ都道府県名桁数
+#                        カナ市区郡町村桁数
+#                        カナ大字通称桁数
+#                        カナ字名丁目桁数
+#                        カナ番地桁数
+#                        カナ方書桁数
+#
+# =========================================================================
+#
+#  ＳＱＬ実行
+#
+
+sqlcmd -S ${SQL_SERVER} -d ${SQL_DB} -U ${SQL_USER} -P ${SQL_PASS} -f ${CHARSET} -t 0 -e -b -N o -Q "
+DECLARE @ExitCode INT;
+DECLARE @ErrorCode INT;
+SET @ExitCode = 0;
+SELECT GETDATE() AS [DATE];
+SELECT @ErrorCode = @@ERROR;
+IF @ErrorCode <> 0 GOTO ENDPT;
+/* ******************************************************/
+/*  10_カナ住所取得                                      */
+/* ******************************************************/
+INSERT INTO [${INFO_DB}].[T_SN00800D_WK3]
+SELECT
+    A.[作成基準日] AS [作成基準日],
+    A.[統合ＣＩＦ番号] AS [統合ＣＩＦ番号],
+    A.[店番] AS [店番],
+    A.[ＣＩＦ番号] AS [ＣＩＦ番号],
+    A.[科目] AS [科目],
+    A.[口座番号] AS [口座番号],
+    A.[カナ氏名] AS [カナ氏名],
+    A.[漢字氏名] AS [漢字氏名],
+    A.[生年月日] AS [生年月日],
+    A.[性別コード] AS [性別コード],
+    A.[本人確認区分] AS [本人確認区分],
+    A.[本人確認更新日] AS [本人確認更新日],
+    A.[住所コード] AS [住所コード],
+    A.[郵便番号] AS [郵便番号],
+    CASE WHEN B.[KNAJUS] IS NULL THEN '' ELSE B.[KNAJUS] END AS [カナ住所],
+    CASE WHEN B.[KNATFMKTA] IS NULL THEN 0 ELSE B.[KNATFMKTA] END AS [カナ都道府県名桁数],
+    CASE WHEN B.[KNAKTA] IS NULL THEN 0 ELSE B.[KNAKTA] END AS [カナ市区郡町村桁数],
+    CASE WHEN B.[KNAOAZTUOKTA] IS NULL THEN 0 ELSE B.[KNAOAZTUOKTA] END AS [カナ大字通称桁数],
+    CASE WHEN B.[KNAAZMCMEKTA] IS NULL THEN 0 ELSE B.[KNAAZMCMEKTA] END AS [カナ字名丁目桁数],
+    CASE WHEN B.[KNABNCKTA] IS NULL THEN 0 ELSE B.[KNABNCKTA] END AS [カナ番地桁数],
+    CASE WHEN B.[KNAFOGKTA] IS NULL THEN 0 ELSE B.[KNAFOGKTA] END AS [カナ方書桁数],
+    A.[漢字住所] AS [漢字住所],
+    A.[都道府県名桁数] AS [都道府県名桁数],
+    A.[市区郡町村桁数] AS [市区郡町村桁数],
+    A.[大字通称桁数] AS [大字通称桁数],
+    A.[字名丁目桁数] AS [字名丁目桁数],
+    A.[番地桁数] AS [番地桁数],
+    A.[方書桁数] AS [方書桁数],
+    A.[自宅電話番号] AS [自宅電話番号],
+    A.[勤務先電話番号] AS [勤務先電話番号],
+    A.[携帯電話番号] AS [携帯電話番号],
+    A.[法人個人コード] AS [法人個人コード],
+    A.[業種コード] AS [業種コード],
+    A.[登録日＿ＣＩＦ開設日] AS [登録日＿ＣＩＦ開設日],
+    A.[口座開設日] AS [口座開設日],
+    A.[最終移動日] AS [最終移動日],
+    A.[種別コード] AS [種別コード],
+    A.[勤務先登録日] AS [勤務先登録日],
+    A.[カナ勤務先名] AS [カナ勤務先名],
+    A.[漢字勤務先名] AS [漢字勤務先名],
+    A.[統合ＣＩＦ内ＦＧ証券契約] AS [統合ＣＩＦ内ＦＧ証券契約],
+    A.[ＦＧ証券口座契約] AS [ＦＧ証券口座契約],
+    A.[統合ＣＩＦ内ＮＩＳＡ契約] AS [統合ＣＩＦ内ＮＩＳＡ契約],
+    A.[ＮＩＳＡ契約あり＿銀行契約] AS [ＮＩＳＡ契約あり＿銀行契約],
+    A.[ＮＩＳＡ契約あり＿ＦＧ契約] AS [ＮＩＳＡ契約あり＿ＦＧ契約]
+FROM [${INFO_DB}].[T_SN00800D_WK2] A
+LEFT JOIN (
+    SELECT * FROM [${DB_T_SRC}].[T_KT50210D_SRC001]
+    WHERE (SELECT CAST(CAST([前日] AS CHAR(8)) AS DATE) FROM [${INFO_DB}].[T_KT00060D_LOAD]) BETWEEN [Start_Date] AND [End_Date]
+      AND [Record_Deleted_Flag] = 0
+      AND [SSSHYJ] = ''
+) B
+ON A.[店番] = B.[TBN]
+AND A.[ＣＩＦ番号] = B.[CFB];
+SELECT @ErrorCode = @@ERROR;
+IF @ErrorCode <> 0 GOTO ENDPT;
+/* ######################################################################### */
+/*                               通常の退出処理                              */
+/* ######################################################################### */
+SELECT GETDATE() AS [DATE];
+SET @ExitCode = 0;
+GOTO Final;
+/* ######################################################################### */
+/*                           エラー発生時の退出処理                          */
+/* ######################################################################### */
+ENDPT:
+SELECT GETDATE() AS [DATE];
+SET @ExitCode = 8;
+GOTO Final;
+/* ######################################################################### */
+/*                    処理を終了し、終了コードを返却する                       */
+/* ######################################################################### */
+Final:
+:EXIT(SELECT @ExitCode)
+"
+
+
+#
+exit $?

@@ -1,0 +1,36 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+# =========================================================================
+#   証券預り資産残高 作成
+#
+#         作成日付 : 2017-10-11   AID T.Hirose
+# =========================================================================
+
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+
+# 変数宣言
+JOBID=BSND0240
+SQL_NAME=BSND0240_01
+
+# ログ退避 (２世代保有)
+JOBLOG=${LOG_DIR}/${JOBID}.log
+if [ -f ${JOBLOG} ]; then
+  cp -pr ${JOBLOG} ${JOBLOG}old
+fi
+
+#ＳＱＬ実行
+printf "\t#--< BSND0240_01 の実行開始 >--------------------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/BATCHJOB.sh ${JOBID} ${SQL_NAME} >> ${LOG_DIR}/${JOBID}.log
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< BSND0240_01 の実行終了 >--------------------------#\n"

@@ -1,0 +1,81 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+#----------------------------------------------------------------------#
+#  バッチジョブ                                                        #
+#  日次：CIF取消BMP対象外データ作成                                    #
+#                                                                      #
+#                   作成日：2022/02/17                                 #
+#                   作成者：AID T.Ikeda                                #
+# 変更履歴
+# ----------------------------------------------------------------------
+# 2022-07-21       :T_SN00040D WK,BSND0040_02,03 追加     | AID T.Ikeda
+#                                                                      #
+#----------------------------------------------------------------------#
+
+# 環境変数の設定 
+. ${ENV_DIR}/SetEnv_1.sh
+
+# 変数宣言
+JOBID=BSND0040
+
+# ログ退避 (２世代保有)
+JOBLOG=${LOG_DIR}/${JOBID}.log
+if [ -f ${JOBLOG} ]; then
+  cp -pr ${JOBLOG} ${JOBLOG}old
+fi
+
+# ログ出力
+date > ${LOG_DIR}/${JOBID}.log
+
+#テーブルの削除/作成
+printf "\t#--< T_SN00040D_OBJ のクリエイト開始 >-----------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/TBLCREATE.sh T_SN00040D OBJ >> ${LOG_DIR}/${JOBID}.log
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< T_SN00040D_OBJ のクリエイト終了 >-----------------#\n"
+printf "\t#--< T_SN00040D_WK  のクリエイト開始 >-----------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/TBLCREATE.sh T_SN00040D WK >> ${LOG_DIR}/${JOBID}.log
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< T_SN00040D_WK  のクリエイト終了 >-----------------#\n"
+
+#SQL実行
+printf "\t#--< BSND0040_01 の実行開始 >--------------------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/BATCHJOB.sh ${JOBID} BSND0040_01 >> ${LOG_DIR}/${JOBID}.log 2>&1
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< BSND0040_01 の実行終了 >--------------------------#\n"
+
+printf "\t#--< BSND0040_02 の実行開始 >--------------------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/BATCHJOB.sh ${JOBID} BSND0040_02 >> ${LOG_DIR}/${JOBID}.log 2>&1
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< BSND0040_02 の実行終了 >--------------------------#\n"
+
+printf "\t#--< BSND0040_03 の実行開始 >--------------------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/BATCHJOB.sh ${JOBID} BSND0040_03 >> ${LOG_DIR}/${JOBID}.log 2>&1
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< BSND0040_03 の実行終了 >--------------------------#\n"
+

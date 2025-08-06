@@ -1,0 +1,64 @@
+#!/bin/sh
+. "/home/ec2-user/kyo/logger.sh"
+
+# スクリプト自身のパスを取得（bashでも.でも動く）
+script_path="$(realpath "${BASH_SOURCE[0]:-${0}}")"
+
+log_exec "$script_path" "$@"
+
+#####################################################################
+# バッチジョブ
+# 業務：管理店番作成
+# 日次：【管理店】貸出先管理店情報累積(バッチ)
+#
+# 変更履歴
+# -------------------------------------------------------------------
+# 2025/02/06 新規作成                                    | M.Shunya
+#####################################################################
+# 環境変数の設定
+. ${ENV_DIR}/SetEnv_1.sh
+# 変数宣言
+JOBID=BKTD1559
+
+# ログ退避 (２世代保有)
+JOBLOG=${LOG_DIR}/${JOBID}.log
+if [ -f ${JOBLOG} ]; then
+  cp -pr ${JOBLOG} ${JOBLOG}old
+fi
+
+#テーブルを削除して作成
+TBL_RE_CREATE()
+{
+TBL_NAME=$1
+TBL_EXT=$2
+printf "\t#--< ${TBL_NAME}_${TBL_EXT} のクリエイト開始 >-----------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/TBLCREATE.sh ${TBL_NAME} ${TBL_EXT} >> ${LOG_DIR}/${JOBID}.log
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< ${TBL_NAME}_${TBL_EXT} のクリエイト終了 >-----------------#\n"
+}
+
+#ＳＱＬの実行
+SQL_GO()
+{
+SQL_NAME=$1
+printf "\t#--< ${SQL_NAME} の実行開始 >--------------------------#\n"
+date >> ${LOG_DIR}/${JOBID}.log
+${SHELL} ${SH_DIR}/BATCHJOB.sh ${JOBID} ${SQL_NAME} >> ${LOG_DIR}/${JOBID}.log
+if [ $? != 0 ]; then
+  exit 8
+fi
+date >> ${LOG_DIR}/${JOBID}.log
+printf "\t#--< ${SQL_NAME} の実行終了 >--------------------------#\n"
+}
+
+date > ${LOG_DIR}/${JOBID}.log
+
+#テーブルの削除/作成
+
+#SQL実行
+SQL_GO BKTD1559_01
+SQL_GO BKTD1559_02
