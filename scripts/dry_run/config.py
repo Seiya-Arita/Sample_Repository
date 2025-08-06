@@ -17,6 +17,7 @@ EXCLUDED_CATEGORIES = (
     'テーブル',
     'VIEW',
     'Step1未使用',
+    'Step2未使用',
     '対象外',
 )
 
